@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uppgiftshantering</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Anpassade färger för villkorlig formatering */
+        .high-priority { background-color: #fca5a5; /* red-300 */ }
+        .medium-priority { background-color: #fcd34d; /* amber-300 */ }
+        .low-priority { background-color: #a7f3d0; /* emerald-300 */ }
+        .past-deadline { background-color: #f87171; /* red-400 */ }
+        .approaching-deadline { background-color: #fbbf24; /* amber-400 */ }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-8">
+
+    <div class="container mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Uppgiftshantering för Projekt</h1>
+
+        <button id="addTaskBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md mb-6 transition duration-300 ease-in-out">
+            Lägg till uppgift
+        </button>
+
+        <div class="overflow-x-auto">
+            <table id="tasksTable" class="min-w-full bg-white rounded-lg">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                        <th class="py-3 px-6 text-left rounded-tl-lg">Uppgift</th>
+                        <th class="py-3 px-6 text-left">Ansvarig</th>
+                        <th class="py-3 px-6 text-left">Deadline</th>
+                        <th class="py-3 px-6 text-left">Prioritet</th>
+                        <th class="py-3 px-6 text-left">Status</th>
+                        <th class="py-3 px-6 text-left">Kommentarer</th>
+                        <th class="py-3 px-6 text-center rounded-tr-lg">Åtgärder</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700 text-sm font-light">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const tasksTableBody = document.querySelector('#tasksTable tbody');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const LOCAL_STORAGE_KEY = 'projectTasks'; // Nyckel för localStorage
+
+        // Funktion för att formatera datum till YYYY-MM-DD
+        function formatDate(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Funktion för att spara alla uppgifter till localStorage
+        function saveTasks() {
+            const tasks = [];
+            tasksTableBody.querySelectorAll('tr').forEach(row => {
+                const inputs = row.querySelectorAll('input, select');
+                tasks.push({
+                    task: inputs[0].value,
+                    responsible: inputs[1].value,
+                    deadline: inputs[2].value,
+                    priority: inputs[3].value,
+                    status: inputs[4].value,
+                    comments: inputs[5].value
+                });
+            });
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
+        }
+
+        // Funktion för att ladda uppgifter från localStorage
+        function loadTasks() {
+            const storedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedTasks) {
+                const tasks = JSON.parse(storedTasks);
+                tasks.forEach(task => {
+                    addTask(task.task, task.responsible, task.deadline, task.priority, task.status, task.comments, false); // Skickar false för att inte spara direkt vid laddning
+                });
+            } else {
+                // Om inga sparade uppgifter finns, lägg till exempeluppgifter
+                addExampleTasks();
+            }
+            updateRowFormatting(); // Uppdatera formatering för laddade uppgifter
+        }
+
+        // Funktion för att lägga till exempeluppgifter
+        function addExampleTasks() {
+            addTask('Skapa projektplan', 'Anna', formatDate(new Date(2025, 7, 20)), 'Hög', 'Pågående', 'Viktigt för projektstart', false);
+            addTask('Boka mötesrum', 'Erik', formatDate(new Date(2025, 6, 15)), 'Medel', 'Ej startad', 'Behöver göras snarast', false);
+            addTask('Granska designskisser', 'Sara', formatDate(new Date(2025, 6, 12)), 'Låg', 'Klar', 'Klart och godkänt', false);
+            addTask('Förbered presentation', 'Johan', formatDate(new Date(2025, 6, 10)), 'Hög', 'Försenad', 'Måste bli klar idag!', false);
+        }
+
+        // Funktion för att lägga till en ny uppgiftsrad
+        // 'shouldSave' parameter för att undvika onödig sparning vid laddning
+        function addTask(task = '', responsible = '', deadline = '', priority = 'Medel', status = 'Ej startad', comments = '', shouldSave = true) {
+            const row = tasksTableBody.insertRow();
+            row.className = 'border-b border-gray-200 hover:bg-gray-100';
+
+            row.innerHTML = `
+                <td class="py-3 px-6 text-left whitespace-nowrap">
+                    <input type="text" value="${task}" class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </td>
+                <td class="py-3 px-6 text-left">
+                    <input type="text" value="${responsible}" class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </td>
+                <td class="py-3 px-6 text-left">
+                    <input type="date" value="${deadline}" class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </td>
+                <td class="py-3 px-6 text-left">
+                    <select class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        <option value="Hög" ${priority === 'Hög' ? 'selected' : ''}>Hög</option>
+                        <option value="Medel" ${priority === 'Medel' ? 'selected' : ''}>Medel</option>
+                        <option value="Låg" ${priority === 'Låg' ? 'selected' : ''}>Låg</option>
+                    </select>
+                </td>
+                <td class="py-3 px-6 text-left">
+                    <select class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        <option value="Ej startad" ${status === 'Ej startad' ? 'selected' : ''}>Ej startad</option>
+                        <option value="Pågående" ${status === 'Pågående' ? 'selected' : ''}>Pågående</option>
+                        <option value="Klar" ${status === 'Klar' ? 'selected' : ''}>Klar</option>
+                        <option value="Försenad" ${status === 'Försenad' ? 'selected' : ''}>Försenad</option>
+                    </select>
+                </td>
+                <td class="py-3 px-6 text-left">
+                    <input type="text" value="${comments}" class="bg-transparent w-full p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300">
+                </td>
+                <td class="py-3 px-6 text-center">
+                    <button class="remove-task-btn bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-md transition duration-300 ease-in-out">
+                        Ta bort
+                    </button>
+                </td>
+            `;
+
+            // Lägg till händelselyssnare för borttagningsknappen
+            row.querySelector('.remove-task-btn').addEventListener('click', (e) => {
+                e.target.closest('tr').remove();
+                saveTasks(); // Spara efter borttagning
+                updateRowFormatting(); // Uppdatera formatering
+            });
+
+            // Lägg till händelselyssnare för ändringar för att uppdatera formatering och spara
+            row.querySelectorAll('input, select').forEach(element => {
+                element.addEventListener('change', () => {
+                    updateRowFormatting();
+                    saveTasks(); // Spara efter varje ändring
+                });
+            });
+
+            // Initial formatering och eventuellt spara
+            updateRowFormatting();
+            if (shouldSave) {
+                saveTasks();
+            }
+        }
+
+        // Funktion för att uppdatera radformatering baserat på prioritet och deadline
+        function updateRowFormatting() {
+            const rows = tasksTableBody.querySelectorAll('tr');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Ignorera tid för jämförelse
+
+            rows.forEach(row => {
+                const prioritySelect = row.querySelector('td:nth-child(4) select');
+                const deadlineInput = row.querySelector('td:nth-child(3) input[type="date"]');
+
+                // Nollställ klasser
+                row.classList.remove('high-priority', 'medium-priority', 'low-priority', 'past-deadline', 'approaching-deadline');
+
+                // Villkorlig formatering för prioritet
+                const priority = prioritySelect.value;
+                if (priority === 'Hög') {
+                    row.classList.add('high-priority');
+                } else if (priority === 'Medel') {
+                    row.classList.add('medium-priority');
+                } else if (priority === 'Låg') {
+                    row.classList.add('low-priority');
+                }
+
+                // Villkorlig formatering för deadline
+                const deadlineValue = deadlineInput.value;
+                if (deadlineValue) {
+                    const deadlineDate = new Date(deadlineValue);
+                    deadlineDate.setHours(0, 0, 0, 0); // Ignorera tid för jämförelse
+
+                    const timeDiff = deadlineDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        row.classList.add('past-deadline');
+                    } else if (diffDays >= 0 && diffDays <= 7) {
+                        row.classList.add('approaching-deadline');
+                    }
+                }
+            });
+        }
+
+        // Lägg till händelselyssnare för "Lägg till uppgift"-knappen
+        addTaskBtn.addEventListener('click', () => addTask());
+
+        // Ladda uppgifter när DOM är laddad
+        document.addEventListener('DOMContentLoaded', loadTasks);
+    </script>
+</body>
+</html>
+<!-- Inget mer behövs här. $PLACEHOLDER$ är utanför </html> och filen är redan komplett. -->
